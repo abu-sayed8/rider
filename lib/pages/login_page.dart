@@ -1,6 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:rider_app/main.dart';
+import 'package:rider_app/pages/home.dart';
 import 'package:rider_app/pages/registration.dart';
 import 'package:rider_app/widgets/buttons.dart';
+import 'package:rider_app/widgets/message.dart';
 class Login extends StatefulWidget {
   static const String idScreen="login";
   @override
@@ -8,6 +13,10 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final FirebaseAuth _firebaseAuth=FirebaseAuth.instance;
+
+  TextEditingController emailTextEditingController=TextEditingController();
+  TextEditingController passwordTextEditingController=TextEditingController();
   @override
   Widget build(BuildContext context) {
     Size size=MediaQuery.of(context).size;
@@ -33,6 +42,7 @@ class _LoginState extends State<Login> {
                 SizedBox(height: 1,),
                 TextField(
                   // key: for,
+                  controller: emailTextEditingController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                       labelText: 'Email',
@@ -49,6 +59,7 @@ class _LoginState extends State<Login> {
                 TextField(
                   // key: for,
                   //keyboardType: TextInputType.visiblePassword,
+                  controller: passwordTextEditingController,
                   obscureText: true,
                   decoration: InputDecoration(
                       labelText: 'Password',
@@ -63,7 +74,18 @@ class _LoginState extends State<Login> {
                 GestureDetector(
                     child: mButton(context, 'Login'),
                 onTap:() {
-                      print('login now');
+                  if(!emailTextEditingController.text.contains('@'))
+                  {
+                  toastMessages(context, "Email address is not Valid.");
+                  }
+                  else if(passwordTextEditingController.text.isEmpty)
+                  {
+                  toastMessages(context, "Password is mandatory.");
+                  }
+                  else{
+                  loginAndAuthenticateUser(context);
+                  }
+
                 }
                 // {
                 //   Navigator.of(context).push(
@@ -101,5 +123,39 @@ class _LoginState extends State<Login> {
         ),
       ),
     );
+  }
+  void loginAndAuthenticateUser(BuildContext context)async{
+    showLoadingDialog(context,"Logged in, Please wait...");
+    final User firebaseUser=(await _firebaseAuth
+    .signInWithEmailAndPassword(
+        email: emailTextEditingController.text,
+        password: passwordTextEditingController.text
+    ).catchError((onError){
+      Navigator.pop(context);
+      toastMessages(context, "Error: "+onError.toString());
+    })).user;
+
+    if(firebaseUser !=null)
+    {
+
+      usersRef.child(firebaseUser.uid).once().then((DataSnapshot snap){
+        if(snap.value !=null){
+          Navigator.pushNamedAndRemoveUntil(
+              context, Home.idScreen, (route) => false);
+          toastMessages(context, "Congratulations, your are Logged In  Successfully");
+        }
+        else{
+          Navigator.pop(context);
+          _firebaseAuth.signOut();
+          toastMessages(context, "No record exist for this user .Please create new account");
+        }
+      });
+
+
+    }
+    else{
+      Navigator.pop(context);
+      toastMessages(context, 'Does not exist for this user .Please create new account');
+    }
   }
 }

@@ -167,12 +167,14 @@ class _RegistrationState extends State<Registration> {
   }
   final FirebaseAuth _firebaseAuth=FirebaseAuth.instance;
   void registerNewUser(BuildContext context)async{
+    showLoadingDialog(context, "Registering, Please wait... ");
     final User firebaseUser=(
         await _firebaseAuth
         .createUserWithEmailAndPassword(
             email: emailTextEditingController.text,
             password: passwordTextEditingController.text
         ).catchError((errMsg){
+          Navigator.pop(context);
           toastMessages(context, "Error: "+ errMsg.toString());
         })
     ).user;
@@ -183,13 +185,16 @@ class _RegistrationState extends State<Registration> {
           "name":nameTextEditingController.text.trim(),
           "email":emailTextEditingController.text.trim(),
           "phone":phoneTextEditingController.text.trim(),
+          "password":passwordTextEditingController.text.trim(),
+
         };
         usersRef.child(firebaseUser.uid).set(userDataMap);
-        toastMessages(context, "Congratulations, your account has been created");
+        toastMessages(context, "Congratulations, your account has been created Successfully");
         Navigator.pushNamedAndRemoveUntil(
             context, Home.idScreen, (route) => false);
       }
     else{
+      Navigator.pop(context);
       toastMessages(context, 'New user account has not been Created');
     }
   }
